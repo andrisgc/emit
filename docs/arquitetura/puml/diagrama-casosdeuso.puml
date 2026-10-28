@@ -1,0 +1,126 @@
+@startuml Emit - Diagrama de Casos de Uso
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam actorBackgroundColor #E1F5EE
+skinparam actorBorderColor #1D9E75
+skinparam actorFontColor #0F6E56
+skinparam actorFontSize 12
+skinparam usecaseBackgroundColor #F8FAFC
+skinparam usecaseBorderColor #CBD5E1
+skinparam usecaseFontSize 11
+skinparam packageBackgroundColor #F0FDF4
+skinparam packageBorderColor #1D9E75
+skinparam packageFontColor #0F6E56
+skinparam arrowColor #64748B
+skinparam roundcorner 8
+skinparam linetype ortho
+
+' ─── ATORES ───
+actor "MEI" as MEI
+actor "Sistema\n(Jobs)" as Sistema
+actor "SEFAZ" as SEFAZ
+actor "Prefeitura" as Prefeitura
+actor "WhatsApp\nBusiness API" as WhatsApp
+actor "Servidor\nde E-mail" as Email
+
+' ─── CASOS DE USO ───
+
+package "Autenticação e Conta" {
+  usecase "UC01\nCadastrar usuário" as UC01
+  usecase "UC02\nConfirmar e-mail" as UC02
+  usecase "UC03\nFazer login" as UC03
+  usecase "UC04\nRecuperar senha" as UC04
+  usecase "UC05\nAtualizar dados do MEI" as UC05
+}
+
+package "Gestão de Clientes" {
+  usecase "UC06\nCadastrar cliente" as UC06
+  usecase "UC07\nEditar cliente" as UC07
+  usecase "UC08\nInativar / Reativar cliente" as UC08
+  usecase "UC09\nListar clientes" as UC09
+}
+
+package "Certificado Digital" {
+  usecase "UC10\nFazer upload do certificado A1" as UC10
+  usecase "UC11\nValidar certificado" as UC11
+  usecase "UC12\nReceber alerta de expiração" as UC12
+}
+
+package "Emissão de Nota Fiscal" {
+  usecase "UC13\nEmitir NFS-e" as UC13
+  usecase "UC14\nAssinar XML" as UC14
+  usecase "UC15\nEnviar nota à prefeitura" as UC15
+  usecase "UC16\nConsultar status da nota" as UC16
+  usecase "UC17\nCancelar nota" as UC17
+  usecase "UC18\nBaixar PDF da nota" as UC18
+  usecase "UC19\nReenviar nota ao cliente" as UC19
+}
+
+package "Gestão do DAS" {
+  usecase "UC20\nVisualizar DAS do mês" as UC20
+  usecase "UC21\nMarcar DAS como pago" as UC21
+  usecase "UC22\nReceber alerta de vencimento" as UC22
+}
+
+package "Painel de Faturamento" {
+  usecase "UC23\nConsultar faturamento" as UC23
+  usecase "UC24\nReceber alerta de limite" as UC24
+}
+
+package "Notificações" {
+  usecase "UC25\nReceber nota por e-mail" as UC25
+  usecase "UC26\nReceber nota por WhatsApp" as UC26
+}
+
+' ─── RELACIONAMENTOS — MEI ───
+MEI --> UC01
+MEI --> UC02
+MEI --> UC03
+MEI --> UC04
+MEI --> UC05
+MEI --> UC06
+MEI --> UC07
+MEI --> UC08
+MEI --> UC09
+MEI --> UC10
+MEI --> UC12
+MEI --> UC13
+MEI --> UC16
+MEI --> UC17
+MEI --> UC18
+MEI --> UC19
+MEI --> UC20
+MEI --> UC21
+MEI --> UC22
+MEI --> UC23
+MEI --> UC24
+
+' ─── RELACIONAMENTOS — SISTEMA (Jobs) ───
+Sistema --> UC12
+Sistema --> UC22
+Sistema --> UC24
+Sistema --> UC20
+
+' ─── RELACIONAMENTOS — SEFAZ ───
+SEFAZ --> UC15
+
+' ─── RELACIONAMENTOS — PREFEITURA ───
+Prefeitura --> UC15
+
+' ─── RELACIONAMENTOS — WHATSAPP ───
+WhatsApp --> UC26
+
+' ─── RELACIONAMENTOS — EMAIL ───
+Email --> UC25
+
+' ─── INCLUDE / EXTEND ───
+UC13 .> UC11 : <<include>>
+UC13 .> UC14 : <<include>>
+UC13 .> UC15 : <<include>>
+UC15 .> UC25 : <<include>>
+UC15 .> UC26 : <<include>>
+UC10 .> UC11 : <<include>>
+UC17 .> UC25 : <<include>>
+
+@enduml

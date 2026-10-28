@@ -1,0 +1,524 @@
+@startuml Emit - Diagrama de Classes
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam classBackgroundColor #F8FAFC
+skinparam classBorderColor #CBD5E1
+skinparam classHeaderBackgroundColor #1D9E75
+skinparam classHeaderFontColor #FFFFFF
+skinparam classHeaderFontSize 13
+skinparam classFontSize 11
+skinparam classFontColor #1E293B
+skinparam arrowColor #64748B
+skinparam arrowFontSize 10
+skinparam arrowFontColor #64748B
+skinparam stereotypeCBackgroundColor #E1F5EE
+skinparam stereotypeEBackgroundColor #FEF3C7
+skinparam stereotypeABackgroundColor #EDE9FE
+skinparam packageBackgroundColor #F1F5F9
+skinparam packageBorderColor #CBD5E1
+skinparam packageFontColor #475569
+skinparam packageFontSize 12
+skinparam padding 5
+skinparam roundcorner 8
+skinparam linetype ortho
+
+' ─────────────────────────────────────────
+' DOMAIN
+' ─────────────────────────────────────────
+package "domain" #F0FDF4 {
+
+  package "entity" {
+
+    class Usuario {
+      - id: UUID
+      - nome: String
+      - email: Email
+      - senhaHash: String
+      - dataCadastro: LocalDateTime
+      - ativo: Boolean
+      + ativar(): void
+      + inativar(): void
+      + alterarSenha(hash: String): void
+    }
+
+    class Mei {
+      - id: UUID
+      - cnpj: Cnpj
+      - razaoSocial: String
+      - nomeFantasia: String
+      - email: Email
+      - telefone: String
+      - endereco: Endereco
+      - atividadePrincipal: AtividadeEconomica
+      - dataCadastro: LocalDateTime
+      + atualizarDados(): void
+      + validarLimiteFaturamento(): Boolean
+    }
+
+    class Cliente {
+      - id: UUID
+      - nome: String
+      - cpfCnpj: String
+      - email: Email
+      - telefone: String
+      - endereco: Endereco
+      - tipo: TipoPessoa
+      - ativo: Boolean
+      + ativar(): void
+      + inativar(): void
+    }
+
+    class NotaFiscal {
+      - id: UUID
+      - numero: String
+      - serie: String
+      - chaveAcesso: String
+      - dataEmissao: LocalDateTime
+      - dataVencimento: LocalDate
+      - valor: BigDecimal
+      - descricaoServico: String
+      - aliquotaIss: BigDecimal
+      - valorIss: BigDecimal
+      - status: StatusNotaFiscal
+      - xmlAssinado: String
+      - pdfDanfse: byte[]
+      - codigoVerificacao: String
+      - tipo: TipoNota
+      + calcularIss(): BigDecimal
+      + autorizar(chave: String): void
+      + cancelar(): void
+      + rejeitar(motivo: String): void
+    }
+
+    class ItemNotaFiscal {
+      - id: UUID
+      - descricao: String
+      - quantidade: BigDecimal
+      - valorUnitario: BigDecimal
+      - valorTotal: BigDecimal
+      - ncm: String
+      - cfop: String
+      + calcularTotal(): BigDecimal
+    }
+
+    class Das {
+      - id: UUID
+      - competencia: Competencia
+      - valorDevido: BigDecimal
+      - dataVencimento: LocalDate
+      - dataPagamento: LocalDateTime
+      - codigoBarras: String
+      - status: StatusDas
+      + pagar(dataPagamento: LocalDateTime): void
+      + vencer(): void
+      + estaVencendo(diasAntecedencia: int): Boolean
+    }
+
+    class CertificadoDigital {
+      - id: UUID
+      - conteudoCriptografado: byte[]
+      - dataEmissao: LocalDate
+      - dataExpiracao: LocalDate
+      - cnpjTitular: Cnpj
+      - razaoSocialTitular: String
+      - ativo: Boolean
+      + estaValido(): Boolean
+      + estaVencendo(diasAntecedencia: int): Boolean
+      + inativar(): void
+    }
+
+    class Notificacao {
+      - id: UUID
+      - tipo: TipoNotificacao
+      - titulo: String
+      - mensagem: String
+      - canal: CanalNotificacao
+      - status: StatusNotificacao
+      - dataEnvio: LocalDateTime
+      - tentativas: Integer
+      + incrementarTentativa(): void
+      + marcarEnviada(): void
+      + marcarFalhou(): void
+    }
+
+  }
+
+  package "valueobject" {
+
+    class Endereco <<Value Object>> {
+      - logradouro: String
+      - numero: String
+      - complemento: String
+      - bairro: String
+      - cidade: String
+      - uf: String
+      - cep: String
+    }
+
+    class AtividadeEconomica <<Value Object>> {
+      - codigo: String
+      - descricao: String
+    }
+
+    class Cnpj <<Value Object>> {
+      - valor: String
+      + isValido(): Boolean
+      + formatado(): String
+    }
+
+    class Cpf <<Value Object>> {
+      - valor: String
+      + isValido(): Boolean
+      + formatado(): String
+    }
+
+    class Email <<Value Object>> {
+      - valor: String
+      + isValido(): Boolean
+    }
+
+    class Competencia <<Value Object>> {
+      - mes: Integer
+      - ano: Integer
+      + toString(): String
+      + anterior(): Competencia
+      + proxima(): Competencia
+    }
+
+  }
+
+  package "enum" {
+
+    enum StatusNotaFiscal <<Enum>> {
+      RASCUNHO
+      AGUARDANDO_ENVIO
+      ENVIADA
+      AUTORIZADA
+      CANCELADA
+      REJEITADA
+    }
+
+    enum StatusDas <<Enum>> {
+      PENDENTE
+      PAGO
+      VENCIDO
+      CANCELADO
+    }
+
+    enum TipoNota <<Enum>> {
+      NFSE
+      NFE
+    }
+
+    enum TipoPessoa <<Enum>> {
+      FISICA
+      JURIDICA
+    }
+
+    enum CanalNotificacao <<Enum>> {
+      EMAIL
+      WHATSAPP
+    }
+
+    enum TipoNotificacao <<Enum>> {
+      DAS_VENCENDO
+      LIMITE_FATURAMENTO
+      NOTA_AUTORIZADA
+      NOTA_REJEITADA
+      CERTIFICADO_VENCENDO
+    }
+
+    enum StatusNotificacao <<Enum>> {
+      PENDENTE
+      ENVIADA
+      FALHOU
+    }
+
+  }
+
+  package "repository" {
+
+    interface UsuarioRepository <<Interface>> {
+      + findByEmail(email: String): Optional<Usuario>
+      + existsByEmail(email: String): Boolean
+      + save(usuario: Usuario): Usuario
+    }
+
+    interface MeiRepository <<Interface>> {
+      + findByCnpj(cnpj: String): Optional<Mei>
+      + findByUsuarioId(usuarioId: UUID): Optional<Mei>
+      + save(mei: Mei): Mei
+    }
+
+    interface ClienteRepository <<Interface>> {
+      + findByMeiId(meiId: UUID): List<Cliente>
+      + findByCpfCnpj(cpfCnpj: String): Optional<Cliente>
+      + save(cliente: Cliente): Cliente
+    }
+
+    interface NotaFiscalRepository <<Interface>> {
+      + findByMeiId(meiId: UUID): List<NotaFiscal>
+      + findByStatus(status: StatusNotaFiscal): List<NotaFiscal>
+      + somarFaturamentoAno(meiId: UUID, ano: int): BigDecimal
+      + save(nota: NotaFiscal): NotaFiscal
+    }
+
+    interface DasRepository <<Interface>> {
+      + findByMeiIdAndCompetencia(meiId: UUID, competencia: Competencia): Optional<Das>
+      + findVencendoEm(dias: int): List<Das>
+      + save(das: Das): Das
+    }
+
+    interface CertificadoDigitalRepository <<Interface>> {
+      + findAtivoByMeiId(meiId: UUID): Optional<CertificadoDigital>
+      + findVencendoEm(dias: int): List<CertificadoDigital>
+      + save(cert: CertificadoDigital): CertificadoDigital
+    }
+
+    interface NotificacaoRepository <<Interface>> {
+      + findByMeiId(meiId: UUID): List<Notificacao>
+      + findPendentes(): List<Notificacao>
+      + save(notificacao: Notificacao): Notificacao
+    }
+
+  }
+
+}
+
+' ─────────────────────────────────────────
+' APPLICATION
+' ─────────────────────────────────────────
+package "application" #F0F9FF {
+
+  package "usecase" {
+
+    class EmitirNotaFiscalUseCase {
+      + execute(request: EmitirNotaRequest): NotaFiscalResponse
+    }
+
+    class CancelarNotaFiscalUseCase {
+      + execute(notaId: UUID, meiId: UUID): void
+    }
+
+    class ConsultarStatusNotaUseCase {
+      + execute(notaId: UUID): NotaFiscalResponse
+    }
+
+    class GerarDasUseCase {
+      + execute(meiId: UUID, competencia: Competencia): DasResponse
+    }
+
+    class MarcarDasPagoUseCase {
+      + execute(dasId: UUID): void
+    }
+
+    class VerificarLimiteFaturamentoUseCase {
+      + execute(meiId: UUID): FaturamentoResponse
+    }
+
+    class CadastrarCertificadoUseCase {
+      + execute(meiId: UUID, arquivo: byte[], senha: String): void
+    }
+
+    class EnviarNotificacaoUseCase {
+      + execute(notificacao: Notificacao): void
+    }
+
+    class AutenticarUsuarioUseCase {
+      + execute(request: LoginRequest): AuthResponse
+    }
+
+    class RegistrarUsuarioUseCase {
+      + execute(request: RegistroRequest): void
+    }
+
+  }
+
+}
+
+' ─────────────────────────────────────────
+' INFRASTRUCTURE
+' ─────────────────────────────────────────
+package "infrastructure" #FEFCE8 {
+
+  class SefazNfeClient {
+    + enviarNfe(xml: String): RetornoSefaz
+    + consultarStatus(chave: String): StatusNfe
+    + cancelarNfe(chave: String): RetornoSefaz
+  }
+
+  class PrefeituraClient {
+    + enviarNfse(xml: String, cidade: String): RetornoPrefeitura
+    + consultarNfse(numero: String): StatusNfse
+  }
+
+  class AssinadorXmlService {
+    + assinar(xml: String, cert: CertificadoDigital): String
+  }
+
+  class EmailService {
+    + enviar(destinatario: String, assunto: String, template: String): void
+  }
+
+  class WhatsAppClient {
+    + enviarMensagem(telefone: String, mensagem: String): void
+    + enviarDocumento(telefone: String, pdf: byte[]): void
+  }
+
+  class PdfNotaFiscalService {
+    + gerar(nota: NotaFiscal): byte[]
+  }
+
+  class CertificadoEncryptionService {
+    + criptografar(conteudo: byte[], senha: String): byte[]
+    + descriptografar(conteudo: byte[], senha: String): byte[]
+  }
+
+  class NotificacaoPublisher {
+    + publicar(notificacao: Notificacao): void
+  }
+
+  class DasAlertJob {
+    + verificarDasVencendo(): void
+  }
+
+  class LimiteFaturamentoJob {
+    + verificarLimiteMei(): void
+  }
+
+  class CertificadoExpiracaoJob {
+    + verificarCertificadosVencendo(): void
+  }
+
+}
+
+' ─────────────────────────────────────────
+' INTERFACES
+' ─────────────────────────────────────────
+package "interfaces" #FDF4FF {
+
+  class AuthController {
+    + login(request: LoginRequest): AuthResponse
+    + registrar(request: RegistroRequest): void
+    + recuperarSenha(email: String): void
+  }
+
+  class NotaFiscalController {
+    + emitir(request: EmitirNotaRequest): NotaFiscalResponse
+    + cancelar(id: UUID): void
+    + listar(): List<NotaFiscalResponse>
+    + buscar(id: UUID): NotaFiscalResponse
+    + pdf(id: UUID): byte[]
+  }
+
+  class DasController {
+    + gerar(competencia: String): DasResponse
+    + listar(): List<DasResponse>
+    + marcarPago(id: UUID): void
+  }
+
+  class ClienteController {
+    + cadastrar(request: CadastrarClienteRequest): ClienteResponse
+    + atualizar(id: UUID, request: CadastrarClienteRequest): ClienteResponse
+    + listar(): List<ClienteResponse>
+    + inativar(id: UUID): void
+  }
+
+  class FaturamentoController {
+    + consultar(): FaturamentoResponse
+  }
+
+  class CertificadoController {
+    + cadastrar(arquivo: MultipartFile, senha: String): void
+    + consultar(): CertificadoResponse
+  }
+
+}
+
+' ─────────────────────────────────────────
+' RELACIONAMENTOS — DOMAIN
+' ─────────────────────────────────────────
+
+Usuario "1" --o "1" Mei : possui
+
+Mei "1" --o "0..*" Cliente : cadastra
+Mei "1" --o "0..*" NotaFiscal : emite
+Mei "1" --o "0..*" Das : gera
+Mei "1" --o "0..1" CertificadoDigital : possui
+Mei "1" --o "0..*" Notificacao : recebe
+Mei *-- Endereco
+Mei *-- AtividadeEconomica
+Mei *-- Cnpj
+
+NotaFiscal "1" --o "0..*" ItemNotaFiscal : contém
+NotaFiscal --> Cliente : destinada a
+NotaFiscal --> StatusNotaFiscal
+NotaFiscal --> TipoNota
+
+Cliente *-- Endereco
+Cliente *-- TipoPessoa
+Cliente *-- Email
+
+Das --> StatusDas
+Das *-- Competencia
+
+Notificacao --> TipoNotificacao
+Notificacao --> CanalNotificacao
+Notificacao --> StatusNotificacao
+
+Usuario *-- Email
+
+' ─────────────────────────────────────────
+' RELACIONAMENTOS — APPLICATION → DOMAIN
+' ─────────────────────────────────────────
+
+EmitirNotaFiscalUseCase ..> NotaFiscalRepository : usa
+EmitirNotaFiscalUseCase ..> MeiRepository : usa
+EmitirNotaFiscalUseCase ..> ClienteRepository : usa
+EmitirNotaFiscalUseCase ..> SefazNfeClient : usa
+EmitirNotaFiscalUseCase ..> AssinadorXmlService : usa
+EmitirNotaFiscalUseCase ..> PdfNotaFiscalService : usa
+EmitirNotaFiscalUseCase ..> NotificacaoPublisher : usa
+
+GerarDasUseCase ..> DasRepository : usa
+GerarDasUseCase ..> MeiRepository : usa
+
+VerificarLimiteFaturamentoUseCase ..> NotaFiscalRepository : usa
+
+CadastrarCertificadoUseCase ..> CertificadoDigitalRepository : usa
+CadastrarCertificadoUseCase ..> CertificadoEncryptionService : usa
+
+EnviarNotificacaoUseCase ..> EmailService : usa
+EnviarNotificacaoUseCase ..> WhatsAppClient : usa
+EnviarNotificacaoUseCase ..> NotificacaoRepository : usa
+
+AutenticarUsuarioUseCase ..> UsuarioRepository : usa
+RegistrarUsuarioUseCase ..> UsuarioRepository : usa
+RegistrarUsuarioUseCase ..> MeiRepository : usa
+
+' ─────────────────────────────────────────
+' RELACIONAMENTOS — INTERFACES → APPLICATION
+' ─────────────────────────────────────────
+
+NotaFiscalController ..> EmitirNotaFiscalUseCase : delega
+NotaFiscalController ..> CancelarNotaFiscalUseCase : delega
+DasController ..> GerarDasUseCase : delega
+DasController ..> MarcarDasPagoUseCase : delega
+FaturamentoController ..> VerificarLimiteFaturamentoUseCase : delega
+CertificadoController ..> CadastrarCertificadoUseCase : delega
+AuthController ..> AutenticarUsuarioUseCase : delega
+AuthController ..> RegistrarUsuarioUseCase : delega
+
+' ─────────────────────────────────────────
+' RELACIONAMENTOS — JOBS
+' ─────────────────────────────────────────
+
+DasAlertJob ..> DasRepository : consulta
+DasAlertJob ..> NotificacaoPublisher : publica
+LimiteFaturamentoJob ..> NotaFiscalRepository : consulta
+LimiteFaturamentoJob ..> NotificacaoPublisher : publica
+CertificadoExpiracaoJob ..> CertificadoDigitalRepository : consulta
+CertificadoExpiracaoJob ..> NotificacaoPublisher : publica
+
+@enduml

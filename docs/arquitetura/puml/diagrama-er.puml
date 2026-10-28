@@ -1,0 +1,208 @@
+@startuml Emit - Diagrama ER
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam classBackgroundColor #F8FAFC
+skinparam classBorderColor #CBD5E1
+skinparam classHeaderBackgroundColor #1D9E75
+skinparam classHeaderFontColor #FFFFFF
+skinparam classHeaderFontSize 12
+skinparam classFontSize 10
+skinparam classFontColor #1E293B
+skinparam arrowColor #64748B
+skinparam packageBackgroundColor #F0FDF4
+skinparam packageBorderColor #1D9E75
+skinparam roundcorner 8
+skinparam linetype ortho
+
+title Emit — Diagrama Entidade-Relacionamento
+
+' ─── USUÁRIO ───
+entity "usuario" as USUARIO {
+  * id : UUID <<PK>>
+  --
+  * nome : VARCHAR(100)
+  * email : VARCHAR(150) <<UNIQUE>>
+  * senha_hash : VARCHAR(255)
+  * email_confirmado : BOOLEAN
+  * token_confirmacao : VARCHAR(255)
+  * token_recuperacao : VARCHAR(255)
+  * token_recuperacao_expira : TIMESTAMP
+  * tentativas_login : INTEGER
+  * bloqueado_ate : TIMESTAMP
+  * ativo : BOOLEAN
+  * criado_em : TIMESTAMP
+  * atualizado_em : TIMESTAMP
+}
+
+' ─── MEI ───
+entity "mei" as MEI {
+  * id : UUID <<PK>>
+  --
+  * usuario_id : UUID <<FK>>
+  * cnpj : VARCHAR(14) <<UNIQUE>>
+  * razao_social : VARCHAR(150)
+  * nome_fantasia : VARCHAR(150)
+  * email : VARCHAR(150)
+  * telefone : VARCHAR(15)
+  * cnae_codigo : VARCHAR(7)
+  * cnae_descricao : VARCHAR(200)
+  * logradouro : VARCHAR(150)
+  * numero : VARCHAR(10)
+  * complemento : VARCHAR(50)
+  * bairro : VARCHAR(80)
+  * cidade : VARCHAR(80)
+  * uf : CHAR(2)
+  * cep : VARCHAR(8)
+  * criado_em : TIMESTAMP
+  * atualizado_em : TIMESTAMP
+}
+
+' ─── CLIENTE ───
+entity "cliente" as CLIENTE {
+  * id : UUID <<PK>>
+  --
+  * mei_id : UUID <<FK>>
+  * nome : VARCHAR(150)
+  * cpf_cnpj : VARCHAR(14)
+  * tipo : ENUM('PF','PJ')
+  * email : VARCHAR(150)
+  * telefone : VARCHAR(15)
+  * logradouro : VARCHAR(150)
+  * numero : VARCHAR(10)
+  * complemento : VARCHAR(50)
+  * bairro : VARCHAR(80)
+  * cidade : VARCHAR(80)
+  * uf : CHAR(2)
+  * cep : VARCHAR(8)
+  * ativo : BOOLEAN
+  * criado_em : TIMESTAMP
+  * atualizado_em : TIMESTAMP
+}
+
+' ─── CERTIFICADO DIGITAL ───
+entity "certificado_digital" as CERT {
+  * id : UUID <<PK>>
+  --
+  * mei_id : UUID <<FK>>
+  * conteudo_criptografado : BYTEA
+  * data_emissao : DATE
+  * data_expiracao : DATE
+  * cnpj_titular : VARCHAR(14)
+  * razao_social_titular : VARCHAR(150)
+  * ativo : BOOLEAN
+  * criado_em : TIMESTAMP
+}
+
+' ─── NOTA FISCAL ───
+entity "nota_fiscal" as NOTA {
+  * id : UUID <<PK>>
+  --
+  * mei_id : UUID <<FK>>
+  * cliente_id : UUID <<FK>>
+  * numero : VARCHAR(20)
+  * serie : VARCHAR(5)
+  * chave_acesso : VARCHAR(44)
+  * chave_idempotencia : VARCHAR(64) <<UNIQUE>>
+  * data_emissao : TIMESTAMP
+  * data_competencia : DATE
+  * valor : NUMERIC(10,2)
+  * descricao_servico : TEXT
+  * aliquota_iss : NUMERIC(5,2)
+  * valor_iss : NUMERIC(10,2)
+  * status : ENUM('RASCUNHO','AGUARDANDO_ENVIO',\n'ENVIADA','AUTORIZADA',\n'CANCELADA','REJEITADA',\n'FALHA_ENVIO')
+  * tipo : ENUM('NFSE','NFE')
+  * xml_assinado : TEXT
+  * pdf_danfse : BYTEA
+  * codigo_verificacao : VARCHAR(50)
+  * motivo_rejeicao : TEXT
+  * tentativas_envio : INTEGER
+  * criado_em : TIMESTAMP
+  * atualizado_em : TIMESTAMP
+}
+
+' ─── ITEM NOTA FISCAL ───
+entity "item_nota_fiscal" as ITEM {
+  * id : UUID <<PK>>
+  --
+  * nota_fiscal_id : UUID <<FK>>
+  * descricao : VARCHAR(200)
+  * quantidade : NUMERIC(10,3)
+  * valor_unitario : NUMERIC(10,2)
+  * valor_total : NUMERIC(10,2)
+  * ncm : VARCHAR(8)
+  * cfop : VARCHAR(4)
+}
+
+' ─── DAS ───
+entity "das" as DAS {
+  * id : UUID <<PK>>
+  --
+  * mei_id : UUID <<FK>>
+  * competencia_mes : INTEGER
+  * competencia_ano : INTEGER
+  * valor_devido : NUMERIC(10,2)
+  * data_vencimento : DATE
+  * data_pagamento : TIMESTAMP
+  * codigo_barras : VARCHAR(60)
+  * status : ENUM('PENDENTE','PAGO',\n'VENCIDO','CANCELADO')
+  * criado_em : TIMESTAMP
+  * atualizado_em : TIMESTAMP
+}
+
+' ─── NOTIFICAÇÃO ───
+entity "notificacao" as NOTIF {
+  * id : UUID <<PK>>
+  --
+  * mei_id : UUID <<FK>>
+  * tipo : ENUM('DAS_VENCENDO',\n'LIMITE_FATURAMENTO',\n'NOTA_AUTORIZADA',\n'NOTA_REJEITADA',\n'CERTIFICADO_VENCENDO',\n'NOTA_ENVIADA_CLIENTE')
+  * titulo : VARCHAR(150)
+  * mensagem : TEXT
+  * canal : ENUM('EMAIL','WHATSAPP')
+  * status : ENUM('PENDENTE','ENVIADA','FALHOU')
+  * data_envio : TIMESTAMP
+  * tentativas : INTEGER
+  * criado_em : TIMESTAMP
+}
+
+' ─── AUDIT LOG ───
+entity "audit_log" as AUDIT {
+  * id : UUID <<PK>>
+  --
+  * mei_id : UUID <<FK>>
+  * acao : VARCHAR(100)
+  * entidade : VARCHAR(50)
+  * entidade_id : UUID
+  * dados_anteriores : JSONB
+  * dados_novos : JSONB
+  * ip_origem : VARCHAR(45)
+  * criado_em : TIMESTAMP
+}
+
+' ─── REFRESH TOKEN ───
+entity "refresh_token" as TOKEN {
+  * id : UUID <<PK>>
+  --
+  * usuario_id : UUID <<FK>>
+  * token_hash : VARCHAR(255) <<UNIQUE>>
+  * expira_em : TIMESTAMP
+  * revogado : BOOLEAN
+  * criado_em : TIMESTAMP
+}
+
+' ─── RELACIONAMENTOS ───
+
+USUARIO ||--|| MEI : "possui"
+USUARIO ||--o{ TOKEN : "possui"
+
+MEI ||--o{ CLIENTE : "cadastra"
+MEI ||--o{ NOTA : "emite"
+MEI ||--o{ DAS : "gera"
+MEI ||--o| CERT : "possui"
+MEI ||--o{ NOTIF : "recebe"
+MEI ||--o{ AUDIT : "gera"
+
+NOTA ||--o{ ITEM : "contém"
+NOTA }o--|| CLIENTE : "destinada a"
+
+@enduml

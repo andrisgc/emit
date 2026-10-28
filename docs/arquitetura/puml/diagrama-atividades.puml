@@ -1,0 +1,136 @@
+@startuml Emit - Diagrama de Atividades (Emissão de NFS-e)
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam activityBackgroundColor #F8FAFC
+skinparam activityBorderColor #CBD5E1
+skinparam activityFontSize 11
+skinparam activityDiamondBackgroundColor #FFFBEB
+skinparam activityDiamondBorderColor #F59E0B
+skinparam activityDiamondFontColor #92400E
+skinparam activityStartColor #1D9E75
+skinparam activityEndColor #0F6E56
+skinparam arrowColor #64748B
+skinparam noteBackgroundColor #E1F5EE
+skinparam noteBorderColor #1D9E75
+skinparam swimlaneBorderColor #CBD5E1
+skinparam swimlaneHeaderBackgroundColor #F0FDF4
+skinparam roundcorner 8
+
+title Emissão de NFS-e — Diagrama de Atividades
+
+|MEI|
+start
+:Acessa tela de emissão de nota;
+:Seleciona cliente;
+:Informa descrição do serviço,\nvalor e alíquota de ISS;
+:Confirma emissão;
+
+|Sistema — Backend|
+:Recebe requisição POST /api/v1/notas;
+:Valida token JWT e permissões;
+
+if (Token válido?) then (não)
+  :Retorna 401 Unauthorized;
+  stop
+endif
+
+:Busca certificado digital ativo do MEI;
+
+if (Certificado existe e está válido?) then (não)
+  :Retorna erro:\n"Certificado inválido ou vencido";
+  |MEI|
+  :Exibe mensagem de erro;
+  :Acessa tela de certificado\npara renovar;
+  stop
+endif
+
+:Calcula faturamento acumulado no ano;
+
+if (Faturamento < R$ 81.000,00?) then (não)
+  :Retorna erro:\n"Limite anual atingido";
+  |MEI|
+  :Exibe aviso de limite MEI;
+  stop
+endif
+
+:Calcula valor do ISS\n(valor × alíquota);
+:Gera chave de idempotência única;
+:Cria NotaFiscal com status RASCUNHO;
+:Salva no banco de dados;
+
+|Sistema — Assinador|
+:Descriptografa certificado A1;
+:Monta XML da NFS-e;
+:Assina XML com certificado A1;
+
+if (Assinatura bem-sucedida?) then (não)
+  :Registra falha;
+  :Notifica MEI sobre erro técnico;
+  stop
+endif
+
+|Sistema — Backend|
+:Atualiza nota para AGUARDANDO_ENVIO;
+:Publica evento na fila RabbitMQ;
+:Retorna 202 Accepted ao frontend;
+
+|MEI|
+:Visualiza status "Aguardando envio";
+
+|Sistema — Fila (Async)|
+:Consome evento da fila;
+:Envia XML assinado à prefeitura;
+
+if (Prefeitura respondeu?) then (timeout/erro)
+  :Incrementa contador de tentativas;
+  if (Tentativas < 3?) then (sim)
+    :Reagenda com backoff exponencial;
+    note right: 1ª retry: 30s\n2ª retry: 5min\n3ª retry: 30min
+    :Envia novamente à prefeitura;
+  else (não)
+    :Move para Dead Letter Queue;
+    :Atualiza nota para FALHA_ENVIO;
+    :Notifica MEI sobre falha;
+    stop
+  endif
+endif
+
+if (Prefeitura autorizou?) then (rejeitada)
+  :Atualiza nota para REJEITADA;
+  :Salva motivo da rejeição;
+  |MEI|
+  :Visualiza motivo da rejeição;
+  :Corrige dados e reenvia;
+  note right: Volta ao início\ndo fluxo de emissão
+  stop
+endif
+
+|Sistema — Fila (Async)|
+:Atualiza nota para AUTORIZADA;
+:Salva número, chave e código\nde verificação da prefeitura;
+
+:Gera PDF da nota (DANFSE);
+:Salva PDF no banco;
+
+fork
+  :Envia PDF por e-mail ao cliente;
+  if (E-mail enviado?) then (falhou)
+    :Tenta novamente (até 3x);
+  endif
+fork again
+  :Envia PDF por WhatsApp ao cliente;
+  if (WhatsApp enviado?) then (falhou)
+    :Tenta novamente (até 3x);
+  endif
+end fork
+
+:Envia push via WebSocket ao frontend;
+
+|MEI|
+:Visualiza status "Nota autorizada ✓";
+:Baixa PDF da nota se necessário;
+
+stop
+
+@enduml

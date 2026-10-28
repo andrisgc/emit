@@ -1,0 +1,131 @@
+@startuml Emit - Diagrama de Sequência (Emissão de NFS-e)
+
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam sequenceArrowColor #64748B
+skinparam sequenceLifeLineBorderColor #CBD5E1
+skinparam sequenceLifeLineBackgroundColor #F8FAFC
+skinparam participantBackgroundColor #E1F5EE
+skinparam participantBorderColor #1D9E75
+skinparam participantFontColor #0F6E56
+skinparam participantFontSize 11
+skinparam actorBackgroundColor #E1F5EE
+skinparam actorBorderColor #1D9E75
+skinparam noteBorderColor #F59E0B
+skinparam noteBackgroundColor #FFFBEB
+skinparam sequenceDividerBackgroundColor #F0FDF4
+skinparam sequenceDividerBorderColor #1D9E75
+skinparam roundcorner 8
+
+title Emissão de NFS-e — Fluxo Completo
+
+actor "MEI" as MEI
+participant "React\nFrontend" as FE
+participant "NotaFiscal\nController" as CTRL
+participant "EmitirNota\nFiscalUseCase" as UC
+participant "Assinador\nXmlService" as SIGN
+participant "Nota\nFiscalRepository" as REPO
+participant "RabbitMQ\nPublisher" as MQ
+participant "NFS-e\nConsumer" as CONSUMER
+participant "Prefeitura\nClient" as PREF
+participant "PDF\nService" as PDF
+participant "Email\nService" as MAIL
+participant "WhatsApp\nClient" as WA
+
+== 1. Início da emissão ==
+
+MEI -> FE : Preenche formulário\n(cliente, valor, descrição, ISS)
+FE -> CTRL : POST /api/v1/notas\n{clienteId, valor, descricao, aliquotaIss}
+CTRL -> UC : execute(EmitirNotaRequest)
+
+== 2. Validações ==
+
+UC -> REPO : buscarCertificadoAtivo(meiId)
+REPO --> UC : CertificadoDigital
+
+alt Certificado inválido ou vencido
+  UC --> CTRL : CertificadoInvalidoException
+  CTRL --> FE : 422 — Certificado vencido ou inválido
+  FE --> MEI : Exibe mensagem de erro
+end
+
+UC -> REPO : somarFaturamentoAno(meiId)
+REPO --> UC : BigDecimal totalFaturado
+
+alt Limite de R$ 81.000,00 atingido
+  UC --> CTRL : LimiteFaturamentoException
+  CTRL --> FE : 422 — Limite anual atingido
+  FE --> MEI : Exibe aviso de limite
+end
+
+== 3. Criação da nota ==
+
+UC -> UC : calcularIss(valor, aliquota)
+UC -> REPO : salvar(NotaFiscal{status=RASCUNHO})
+REPO --> UC : NotaFiscal salva (id gerado)
+
+note over UC : Chave de idempotência\ngerada aqui — evita duplicata
+
+== 4. Assinatura do XML ==
+
+UC -> SIGN : assinar(xmlNota, certificadoDigital)
+SIGN -> SIGN : descriptografarCertificado(senha)
+SIGN -> SIGN : assinarComA1(xml, cert)
+SIGN --> UC : xmlAssinado
+
+UC -> REPO : atualizar(status=AGUARDANDO_ENVIO, xml=xmlAssinado)
+
+== 5. Envio para fila ==
+
+UC -> MQ : publicar(NotaFiscalEvent{notaId, xmlAssinado})
+MQ --> UC : confirmação de publicação
+UC --> CTRL : NotaFiscalResponse{id, status=AGUARDANDO_ENVIO}
+CTRL --> FE : 202 Accepted
+FE --> MEI : Exibe status "Aguardando envio..."
+
+== 6. Processamento assíncrono ==
+
+MQ -> CONSUMER : consume(NotaFiscalEvent)
+
+CONSUMER -> PREF : enviarNfse(xmlAssinado, municipio)
+
+alt Prefeitura fora do ar (timeout)
+  PREF --> CONSUMER : TimeoutException
+  CONSUMER -> MQ : requeue com backoff (até 3 tentativas)
+  note over MQ : Se falhar 3x → Dead Letter Queue\nMEI notificado sobre falha
+end
+
+PREF --> CONSUMER : RetornoPrefeitura{numero, chave, codigoVerificacao}
+
+== 7. Pós-autorização ==
+
+CONSUMER -> REPO : atualizar(status=AUTORIZADA, numero, chave)
+
+CONSUMER -> PDF : gerar(notaFiscal)
+PDF --> CONSUMER : byte[] pdfDanfse
+
+CONSUMER -> REPO : atualizar(pdf=pdfDanfse)
+
+== 8. Notificação ao cliente ==
+
+CONSUMER -> MAIL : enviar(clienteEmail, "Nota Fiscal", pdf)
+MAIL --> CONSUMER : enviado
+
+CONSUMER -> WA : enviarDocumento(clienteTelefone, pdf)
+WA --> CONSUMER : enviado
+
+== 9. Atualização em tempo real ==
+
+CONSUMER -> FE : WebSocket push\n{notaId, status=AUTORIZADA}
+FE --> MEI : Atualiza status na tela\n"Nota autorizada ✓"
+
+== 10. Fluxo alternativo — Rejeição ==
+
+alt Nota rejeitada pela prefeitura
+  PREF --> CONSUMER : RetornoPrefeitura{status=REJEITADA, motivo}
+  CONSUMER -> REPO : atualizar(status=REJEITADA, motivoRejeicao)
+  CONSUMER -> FE : WebSocket push\n{notaId, status=REJEITADA, motivo}
+  FE --> MEI : Exibe motivo e botão "Corrigir e reenviar"
+end
+
+@enduml
