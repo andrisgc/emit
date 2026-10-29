@@ -1,7 +1,7 @@
 target/
 build/
 .gradle/
-out/
+/out/
 bin/
 *.class
 *.jar
@@ -33,7 +33,7 @@ build/
 *.iws
 *.iml
 *.ipr
-out/
+/out/
 
 .vscode/*
 !.vscode/settings.json

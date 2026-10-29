@@ -24,6 +24,7 @@ O **Emit** é uma plataforma SaaS que automatiza a emissão de notas fiscais (NF
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
+- [API Reference](#api-reference)
 - [Project Structure](#project-structure)
 - [License](#license)
 
@@ -86,6 +87,43 @@ As escolhas técnicas e arquiteturais importantes do projeto serão armazenadas 
 | XML signing | Bouncy Castle | A1 certificate operations |
 | Testing | JUnit 5 + Mockito + Testcontainers | Unit + integration coverage |
 | Infra | Docker + Railway → AWS | Simple start, clear migration path |
+
+---
+
+## API Reference
+
+Documentação da API disponível via Swagger UI quando rodando localmente:
+`http://localhost:8080/swagger-ui.html`
+
+Endpoints:
+```
+POST   /api/v1/auth/register
+POST   /api/v1/auth/login
+POST   /api/v1/auth/refresh
+
+GET    /api/v1/mei
+PUT    /api/v1/mei
+
+GET    /api/v1/clientes
+POST   /api/v1/clientes
+PUT    /api/v1/clientes/{id}
+DELETE /api/v1/clientes/{id}
+
+GET    /api/v1/notas
+POST   /api/v1/notas
+GET    /api/v1/notas/{id}
+GET    /api/v1/notas/{id}/pdf
+DELETE /api/v1/notas/{id}
+
+GET    /api/v1/das
+POST   /api/v1/das/{id}/pagar
+
+GET    /api/v1/faturamento
+
+POST   /api/v1/faturamento
+GET    /api/v1/faturamento
+
+```
 
 ---
 
