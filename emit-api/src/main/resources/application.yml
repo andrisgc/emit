@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: emit-api
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+server:
+  port: 8080
+  error:
+    include-message: always
