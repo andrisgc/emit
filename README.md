@@ -8,6 +8,7 @@
   [![Java](https://img.shields.io/badge/Java-21-orange?style=flat-square&labelColor=1a1a1a&logo=openjdk&logoColor=white)](https://openjdk.org/projects/jdk/21/)
   [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-6DB33F?style=flat-square&labelColor=1a1a1a&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
   [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&labelColor=1a1a1a&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+  [![React](https://img.shields.io/badge/React-18-61DAFB?style=flat-square&labelColor=1a1a1a&logo=react&logoColor=black)](https://react.dev/)
 
 </div>
 
@@ -74,19 +75,21 @@ As escolhas técnicas e arquiteturais importantes do projeto serão armazenadas 
 
 ## Tech Stack
 
-| Layer | Technology | Reason |
-|-------|-----------|--------|
-| Language | Java 21 | LTS, virtual threads, records |
-| Framework | Spring Boot 3.x | Mature ecosystem, wide adoption |
-| Security | Spring Security + JWT RS256 | Token rotation, stateless auth |
-| Database | PostgreSQL 16 | ACID, JSON support, reliability |
-| Cache | Redis | Session store, rate limiting |
-| Messaging | RabbitMQ | Async invoice dispatch, retry, DLQ |
-| Frontend | React 18 + TypeScript + Vite | Type safety, fast builds |
-| PDF | iText 7 | DANFSE/DANFE generation |
-| XML signing | Bouncy Castle | A1 certificate operations |
-| Testing | JUnit 5 + Mockito + Testcontainers | Unit + integration coverage |
-| Infra | Docker + Railway → AWS | Simple start, clear migration path |
+| Layer | Technology | Reason                                                 |
+|-------|-----------|--------------------------------------------------------|
+| Language | Java 21 | LTS, virtual threads, records                          |
+| Framework | Spring Boot 3.x | Mature ecosystem, wide adoption                        |
+| Security | Spring Security + JWT RS256 | Token rotation, stateless auth                         |
+| Database | PostgreSQL 16 | ACID, JSON support, reliability                        |
+| Cache | Redis | Session store, rate limiting                           |
+| Messaging | RabbitMQ | Async invoice dispatch, retry, DLQ                     |
+| Frontend | React 18 + TypeScript + Vite | Type safety, fast builds                               |
+| UI Componentry | TailwindCSS / shadcn/ui | Clean and minimalist interface for the dashboard       |
+| WhatsApp API | WhatsApp Cloud API (Meta) | Official API with buttons, lists, and stable webhooks  |
+| PDF | iText 7 | DANFSE/DANFE generation                                |
+| XML signing | Bouncy Castle | A1 certificate operations                              |
+| Testing | JUnit 5 + Mockito + Testcontainers | Unit + integration coverage                            |
+| Infra | Docker + Railway → AWS | Simple start, clear migration path                     |
 
 ---
 
